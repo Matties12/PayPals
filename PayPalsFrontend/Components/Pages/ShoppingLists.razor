@@ -1,0 +1,98 @@
+﻿@page "/shoppinglists"
+@inject IHttpClientFactory ClientFactory
+@rendermode InteractiveServer
+
+<h3>Boodschappenlijsten</h3>
+
+<h4>Nieuwe lijst</h4>
+
+<div class="mb-3">
+    <label>Titel</label>
+    <input class="form-control" @bind="newShoppingList.title" />
+</div>
+
+<button class="btn btn-primary" @onclick="AddShoppingList">Toevoegen</button>
+
+<hr />
+
+@if (shoppingLists == null)
+{
+    <p>Laden...</p>
+}
+else if (!shoppingLists.Any())
+{
+    <p>Geen boodschappenlijsten gevonden</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Titel</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var list in shoppingLists)
+            {
+                <tr>
+                    <td>@list.title</td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => DeleteShoppingList(list.shoppingListId)">
+                            Verwijder
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ShoppingList>? shoppingLists;
+    private ShoppingList newShoppingList = new ShoppingList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadShoppingLists();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadShoppingLists()
+    {
+        var client = ClientFactory.CreateClient("api");
+        shoppingLists = await client.GetFromJsonAsync<List<ShoppingList>>("shoppinglists");
+    }
+
+    private async Task AddShoppingList()
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PostAsJsonAsync("shoppinglists", newShoppingList);
+
+        newShoppingList = new ShoppingList();
+
+        await LoadShoppingLists();
+        StateHasChanged();
+    }
+
+    private async Task DeleteShoppingList(int id)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.DeleteAsync($"shoppinglists/{id}");
+
+        await LoadShoppingLists();
+        StateHasChanged();
+    }
+
+    public class ShoppingList
+    {
+        public int shoppingListId { get; set; }
+        public string title { get; set; } = "";
+        public int? payerId { get; set; }
+    }
+}

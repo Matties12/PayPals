@@ -1,0 +1,97 @@
+﻿@page "/persons"
+@inject IHttpClientFactory ClientFactory
+@rendermode InteractiveServer
+
+<h3>Personen</h3>
+
+<h4>Nieuwe persoon</h4>
+
+<div class="mb-3">
+    <label>Naam</label>
+    <input class="form-control" @bind="newPerson.name" />
+</div>
+
+<button class="btn btn-primary" @onclick="AddPerson">Toevoegen</button>
+
+<hr />
+
+@if (persons == null)
+{
+    <p>Laden...</p>
+}
+else if (!persons.Any())
+{
+    <p>Geen personen gevonden</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var person in persons)
+            {
+                <tr>
+                    <td>@person.name</td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => DeletePerson(person.personId)">
+                            Verwijder
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Person>? persons;
+    private Person newPerson = new Person();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadPersons();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPersons()
+    {
+        var client = ClientFactory.CreateClient("api");
+        persons = await client.GetFromJsonAsync<List<Person>>("persons");
+    }
+
+    private async Task AddPerson()
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PostAsJsonAsync("persons", newPerson);
+
+        newPerson = new Person();
+
+        await LoadPersons();
+        StateHasChanged();
+    }
+
+    private async Task DeletePerson(int id)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.DeleteAsync($"persons/{id}");
+
+        await LoadPersons();
+        StateHasChanged();
+    }
+
+    public class Person
+    {
+        public int personId { get; set; }
+        public string name { get; set; } = "";
+    }
+}

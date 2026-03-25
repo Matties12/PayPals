@@ -1,0 +1,394 @@
+﻿@page "/shoppinglists/{shoppingListId:int}"
+@inject IHttpClientFactory ClientFactory
+@rendermode InteractiveServer
+
+<h3>Detail boodschappenlijst</h3>
+
+<p><strong>Lijst ID:</strong> @shoppingListId</p>
+
+<h4>Personen uit databank</h4>
+
+@if (allPersons == null)
+{
+    <p>Laden van alle personen...</p>
+}
+else if (!allPersons.Any())
+{
+    <p>Geen personen gevonden in de databank.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Actie</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var person in allPersons)
+            {
+                bool zitAlInLijst = persons != null && persons.Any(p => p.personId == person.personId);
+
+                <tr>
+                    <td>@person.name</td>
+                    <td>
+                        @if (zitAlInLijst)
+                        {
+                            <span>Al toegevoegd</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary" @onclick="() => AddPersonToList(person.personId)">
+                                Toevoegen
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h4>Producten uit databank</h4>
+
+@if (allProducts == null)
+{
+    <p>Laden van alle producten...</p>
+}
+else if (!allProducts.Any())
+{
+    <p>Geen producten gevonden in de databank.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Prijs</th>
+                <th>Alcohol</th>
+                <th>Actie</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in allProducts)
+            {
+                bool zitAlInLijst = products != null && products.Any(p => p.productId == product.productId);
+
+                <tr>
+                    <td>@product.name</td>
+                    <td>€ @product.price</td>
+                    <td>@(product.isAlcoholic ? "Ja" : "Nee")</td>
+                    <td>
+                        @if (zitAlInLijst)
+                        {
+                            <span>Al toegevoegd</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary" @onclick="() => AddProductToList(product.productId)">
+                                Toevoegen
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<hr />
+
+<h4>Personen in deze lijst</h4>
+
+@if (persons == null)
+{
+    <p>Laden...</p>
+}
+else if (!persons.Any())
+{
+    <p>Er zitten nog geen personen in deze lijst.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Betaalt alcohol mee</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var person in persons)
+            {
+                <tr>
+                    <td>@person.name</td>
+                    <td>@(person.paysForAlcohol ? "Ja" : "Nee")</td>
+                    <td>
+                        <button class="btn btn-warning me-2" @onclick="() => ToggleAlcohol(person.personId)">
+                            Toggle alcohol
+                        </button>
+
+                        <button class="btn btn-danger" @onclick="() => DeletePersonFromList(person.personId)">
+                            Verwijder
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h4>Producten in deze lijst</h4>
+
+@if (products == null)
+{
+    <p>Laden...</p>
+}
+else if (!products.Any())
+{
+    <p>Er zitten nog geen producten in deze lijst.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Prijs</th>
+                <th>Alcohol</th>
+                <th>Aantal</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td>@product.name</td>
+                    <td>€ @product.price</td>
+                    <td>@(product.isAlcoholic ? "Ja" : "Nee")</td>
+                    <td>
+                        <input class="form-control"
+                               style="width: 80px;"
+                               type="number"
+                               min="1"
+                               value="@product.quantity"
+                               @onchange="(e => ChangeQuantity(product.productId, e.Value?.ToString()))" />
+                    </td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => DeleteProductFromList(product.productId)">
+                            Verwijder
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+<hr />
+
+<h4>Berekening</h4>
+
+<button class="btn btn-success mb-3" @onclick="LoadCalculation">
+    Bereken
+</button>
+
+@if (calculation == null)
+{
+    <p>Klik op bereken om het resultaat te zien.</p>
+}
+else
+{
+    <p><strong>Totaal:</strong> € @calculation.totalAmount</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Naam</th>
+                <th>Te betalen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in calculation.persons)
+            {
+                <tr>
+                    <td>@p.name</td>
+                    <td>€ @p.amountToPay</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    [Parameter]
+    public int shoppingListId { get; set; }
+
+    private List<ShoppingListPerson>? persons;
+    private List<Person>? allPersons;
+    private List<ShoppingListProduct>? products;
+    private List<Product>? allProducts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadPersons();
+            await LoadAllPersons();
+            await LoadProducts();
+            await LoadAllProducts();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadPersons()
+    {
+        var client = ClientFactory.CreateClient("api");
+        persons = await client.GetFromJsonAsync<List<ShoppingListPerson>>($"shoppinglists/{shoppingListId}/persons");
+    }
+
+    private async Task LoadAllPersons()
+    {
+        var client = ClientFactory.CreateClient("api");
+        allPersons = await client.GetFromJsonAsync<List<Person>>("persons");
+    }
+
+    private async Task LoadProducts()
+    {
+        var client = ClientFactory.CreateClient("api");
+        products = await client.GetFromJsonAsync<List<ShoppingListProduct>>($"shoppinglists/{shoppingListId}/products");
+    }
+
+    private async Task LoadAllProducts()
+    {
+        var client = ClientFactory.CreateClient("api");
+        allProducts = await client.GetFromJsonAsync<List<Product>>("products");
+    }
+
+    private async Task AddPersonToList(int personId)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PostAsync($"shoppinglists/{shoppingListId}/persons/{personId}", null);
+
+        await LoadPersons();
+        StateHasChanged();
+    }
+
+    private async Task ToggleAlcohol(int personId)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PutAsync($"shoppinglists/{shoppingListId}/persons/{personId}/toggle-alcohol", null);
+
+        await LoadPersons();
+        StateHasChanged();
+    }
+
+    private async Task DeletePersonFromList(int personId)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.DeleteAsync($"shoppinglists/{shoppingListId}/persons/{personId}");
+
+        await LoadPersons();
+        StateHasChanged();
+    }
+
+    private async Task AddProductToList(int productId)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PostAsync($"shoppinglists/{shoppingListId}/products/{productId}/1", null);
+
+        await LoadProducts();
+        await LoadAllProducts();
+        StateHasChanged();
+    }
+
+    private async Task ChangeQuantity(int productId, string? newValue)
+    {
+        if (!int.TryParse(newValue, out int quantity) || quantity < 1)
+            return;
+
+        var client = ClientFactory.CreateClient("api");
+
+        await client.PutAsync($"shoppinglists/{shoppingListId}/products/{productId}/quantity/{quantity}", null);
+
+        await LoadProducts();
+        StateHasChanged();
+    }
+
+    private async Task DeleteProductFromList(int productId)
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        await client.DeleteAsync($"shoppinglists/{shoppingListId}/products/{productId}");
+
+        await LoadProducts();
+        await LoadAllProducts();
+        StateHasChanged();
+    }
+    private CalculationResult? calculation;
+
+    private async Task LoadCalculation()
+    {
+        var client = ClientFactory.CreateClient("api");
+
+        calculation = await client.GetFromJsonAsync<CalculationResult>($"shoppinglists/{shoppingListId}/calculation");
+
+        StateHasChanged();
+    }
+
+    public class CalculationResult
+    {
+        public int shoppingListId { get; set; }
+        public string title { get; set; } = "";
+        public int? payerId { get; set; }
+        public decimal totalAmount { get; set; }
+        public List<PersonResult> persons { get; set; } = new();
+    }
+
+    public class PersonResult
+    {
+        public int personId { get; set; }
+        public string name { get; set; } = "";
+        public decimal amountToPay { get; set; }
+    }
+
+    public class ShoppingListPerson
+    {
+        public int shoppingListPersonId { get; set; }
+        public int shoppingListId { get; set; }
+        public int personId { get; set; }
+        public string name { get; set; } = "";
+        public bool paysForAlcohol { get; set; }
+    }
+
+    public class Person
+    {
+        public int personId { get; set; }
+        public string name { get; set; } = "";
+    }
+
+    public class ShoppingListProduct
+    {
+        public int shoppingListProductId { get; set; }
+        public int shoppingListId { get; set; }
+        public int productId { get; set; }
+        public string name { get; set; } = "";
+        public decimal price { get; set; }
+        public bool isAlcoholic { get; set; }
+        public int quantity { get; set; }
+    }
+
+    public class Product
+    {
+        public int productId { get; set; }
+        public string name { get; set; } = "";
+        public decimal price { get; set; }
+        public bool isAlcoholic { get; set; }
+    }
+}
