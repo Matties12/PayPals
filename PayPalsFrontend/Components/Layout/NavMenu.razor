@@ -1,44 +1,37 @@
-﻿<div class="topbar">
-    <div class="brand">
-        PayPals
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">PayPals</a>
     </div>
-
-    <button class="menu-button" @onclick="ToggleMenu">
-        ☰
-    </button>
 </div>
 
-@if (isMenuOpen)
-{
-    <div class="dropdown-menu-custom">
-        <NavLink class="menu-link" href="/" Match="NavLinkMatch.All" @onclick="CloseMenu">
-            Home
-        </NavLink>
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-        <NavLink class="menu-link" href="/products" @onclick="CloseMenu">
-            Products
-        </NavLink>
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
 
-        <NavLink class="menu-link" href="/persons" @onclick="CloseMenu">
-            Persons
-        </NavLink>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
 
-        <NavLink class="menu-link" href="/shoppinglists" @onclick="CloseMenu">
-            Shopping Lists
-        </NavLink>
-    </div>
-}
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="products">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Products
+            </NavLink>
+        </div>
 
-@code {
-    private bool isMenuOpen = false;
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="persons">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Persons
+            </NavLink>
+        </div>
 
-    private void ToggleMenu()
-    {
-        isMenuOpen = !isMenuOpen;
-    }
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="shoppinglists">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Shopping Lists
+            </NavLink>
+        </div>
 
-    private void CloseMenu()
-    {
-        isMenuOpen = false;
-    }
-}
+    </nav>
+</div>

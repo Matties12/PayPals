@@ -38,6 +38,10 @@ else
                 <tr>
                     <td>@list.title</td>
                     <td>
+                        <a class="btn btn-primary me-2" href="@($"/shoppinglists/{list.shoppingListId}")">
+                            Open
+                        </a>
+
                         <button class="btn btn-danger" @onclick="() => DeleteShoppingList(list.shoppingListId)">
                             Verwijder
                         </button>
