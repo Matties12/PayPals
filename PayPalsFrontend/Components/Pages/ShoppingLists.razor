@@ -2,59 +2,321 @@
 @inject IHttpClientFactory ClientFactory
 @rendermode InteractiveServer
 
-<h3>Boodschappenlijsten</h3>
+<div class="shopping-page">
+    <div class="page-header">
+        <div>
+            <h3>Boodschappenlijsten</h3>
+            <p>Maak en beheer hier je boodschappenlijsten.</p>
+        </div>
+    </div>
 
-<h4>Nieuwe lijst</h4>
+    <div class="shopping-grid">
+        <div class="card-box form-card">
+            <h4>Nieuwe lijst</h4>
 
-<div class="mb-3">
-    <label>Titel</label>
-    <input class="form-control" @bind="newShoppingList.title" />
+            <div class="mb-3">
+                <label class="form-label">Titel</label>
+                <input class="form-control clean-input" placeholder="Bijvoorbeeld: Verjaardag" @bind="newShoppingList.title" />
+            </div>
+
+            <button class="btn add-btn" @onclick="AddShoppingList">
+                + Toevoegen
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="message error-message">@errorMessage</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(successMessage))
+            {
+                <div class="message success-message">@successMessage</div>
+            }
+        </div>
+
+        <div class="card-box table-card">
+            <h4>Overzicht lijsten</h4>
+
+            @if (shoppingLists == null)
+            {
+                <p class="empty-text">Laden...</p>
+            }
+            else if (!shoppingLists.Any())
+            {
+                <p class="empty-text">Geen boodschappenlijsten gevonden.</p>
+            }
+            else
+            {
+                <table class="table clean-table">
+                    <thead>
+                        <tr>
+                            <th>Titel</th>
+                            <th>Acties</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var list in shoppingLists)
+                        {
+                            <tr>
+                                <td>@list.title</td>
+                                <td>
+                                    <a class="btn open-btn me-2" href="@($"/shoppinglists/{list.shoppingListId}")">
+                                        Open
+                                    </a>
+
+                                    <button class="btn delete-btn" @onclick="() => OpenDeletePopup(list.shoppingListId)">
+                                        Verwijder
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
 </div>
 
-<button class="btn btn-primary" @onclick="AddShoppingList">Toevoegen</button>
-
-<hr />
-
-@if (shoppingLists == null)
+@if (showDeletePopup)
 {
-    <p>Laden...</p>
-}
-else if (!shoppingLists.Any())
-{
-    <p>Geen boodschappenlijsten gevonden</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Titel</th>
-                <th>Acties</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var list in shoppingLists)
-            {
-                <tr>
-                    <td>@list.title</td>
-                    <td>
-                        <a class="btn btn-primary me-2" href="@($"/shoppinglists/{list.shoppingListId}")">
-                            Open
-                        </a>
+    <div class="popup-background">
+        <div class="popup-box">
+            <h5>Lijst verwijderen</h5>
+            <p>Ben je zeker dat je deze boodschappenlijst wil verwijderen?</p>
 
-                        <button class="btn btn-danger" @onclick="() => DeleteShoppingList(list.shoppingListId)">
-                            Verwijder
-                        </button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+            <div class="popup-actions">
+                <button class="btn cancel-btn" @onclick="CloseDeletePopup">
+                    Terug
+                </button>
+
+                <button class="btn confirm-delete-btn" @onclick="ConfirmDeleteShoppingList">
+                    Verwijderen
+                </button>
+            </div>
+        </div>
+    </div>
 }
+
+<style>
+    .shopping-page {
+        padding: 10px 8px 40px 8px;
+    }
+
+    .page-header {
+        margin-bottom: 28px;
+    }
+
+        .page-header h3 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+    .shopping-grid {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+
+    .card-box {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+        .card-box h4 {
+            font-size: 1.35rem;
+            font-weight: 750;
+            color: #111827;
+            margin-bottom: 24px;
+        }
+
+    .clean-input {
+        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid #d1d5db;
+    }
+
+        .clean-input:focus {
+            border-color: #6d5dfc;
+            box-shadow: 0 0 0 0.2rem rgba(109, 93, 252, 0.15);
+        }
+
+    .add-btn {
+        width: 100%;
+        background: linear-gradient(135deg, #6d5dfc, #4f46e5);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        font-weight: 700;
+        margin-top: 10px;
+    }
+
+        .add-btn:hover {
+            color: white;
+            opacity: 0.95;
+        }
+
+    .message {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+
+    .error-message {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .success-message {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .clean-table {
+        margin-bottom: 0;
+    }
+
+        .clean-table thead th {
+            background: #f8fafc;
+            color: #374151;
+            font-weight: 700;
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .clean-table tbody td {
+            padding: 18px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .clean-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+    .open-btn {
+        border: 1px solid #6d5dfc;
+        background: white;
+        color: #4f46e5;
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+        .open-btn:hover {
+            background: #4f46e5;
+            color: white;
+        }
+
+    .delete-btn {
+        border: 1px solid #ef4444;
+        background: white;
+        color: #dc2626;
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-weight: 700;
+    }
+
+        .delete-btn:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+    .empty-text {
+        color: #6b7280;
+        margin-bottom: 0;
+    }
+
+    .popup-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .popup-box {
+        background: white;
+        width: 500px;
+        max-width: 90%;
+        padding: 34px 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+        text-align: center;
+    }
+
+        .popup-box h5 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+            color: #111827;
+        }
+
+        .popup-box p {
+            color: #6b7280;
+            font-size: 1.05rem;
+            margin-bottom: 28px;
+        }
+
+    .popup-actions {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+    }
+
+    .cancel-btn {
+        background: #f3f4f6;
+        color: #374151;
+        border-radius: 10px;
+        padding: 10px 22px;
+        font-weight: 700;
+    }
+
+    .confirm-delete-btn {
+        background: #dc2626;
+        color: white;
+        border-radius: 10px;
+        padding: 10px 22px;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 900px) {
+        .shopping-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 @code {
     private List<ShoppingList>? shoppingLists;
     private ShoppingList newShoppingList = new ShoppingList();
+
+    private string errorMessage = "";
+    private string successMessage = "";
+
+    private bool showDeletePopup = false;
+    private int shoppingListIdToDelete;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -73,6 +335,15 @@ else
 
     private async Task AddShoppingList()
     {
+        errorMessage = "";
+        successMessage = "";
+
+        if (string.IsNullOrWhiteSpace(newShoppingList.title))
+        {
+            errorMessage = "Vul een titel in voor de boodschappenlijst.";
+            return;
+        }
+
         var client = ClientFactory.CreateClient("api");
 
         await client.PostAsJsonAsync("shoppinglists", newShoppingList);
@@ -80,16 +351,42 @@ else
         newShoppingList = new ShoppingList();
 
         await LoadShoppingLists();
+
+        successMessage = "Boodschappenlijst is toegevoegd.";
         StateHasChanged();
     }
 
-    private async Task DeleteShoppingList(int id)
+    private void OpenDeletePopup(int id)
     {
+        shoppingListIdToDelete = id;
+        showDeletePopup = true;
+    }
+
+    private void CloseDeletePopup()
+    {
+        showDeletePopup = false;
+    }
+
+    private async Task ConfirmDeleteShoppingList()
+    {
+        errorMessage = "";
+        successMessage = "";
+
         var client = ClientFactory.CreateClient("api");
 
-        await client.DeleteAsync($"shoppinglists/{id}");
+        var response = await client.DeleteAsync($"shoppinglists/{shoppingListIdToDelete}");
 
-        await LoadShoppingLists();
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "Boodschappenlijst is verwijderd.";
+            await LoadShoppingLists();
+        }
+        else
+        {
+            errorMessage = "Er ging iets mis bij het verwijderen.";
+        }
+
+        showDeletePopup = false;
         StateHasChanged();
     }
 

@@ -245,6 +245,7 @@ app.MapDelete("/shoppinglists/{shoppingListId}/products/{productId}", async (int
 app.MapGet("/shoppinglists/{shoppingListId}/calculation", async (int shoppingListId, PaypalsDbContext db) =>
 {
     var shoppingList = await db.ShoppingLists
+        .Include(sl => sl.Payer)
         .Include(sl => sl.ShoppingListPeople)
             .ThenInclude(slp => slp.Person)
         .Include(sl => sl.ShoppingListProducts)
@@ -281,23 +282,71 @@ app.MapGet("/shoppinglists/{shoppingListId}/calculation", async (int shoppingLis
         }
     }
 
-    var result = persons.Select(p => new
+    var personsResult = persons.Select(p => new
     {
         personId = p.PersonId,
         name = p.Person.Name,
-        amountToPay = Math.Round(amounts[p.PersonId], 2)
+
+        // Als deze persoon de betaler is, moet die niets terugbetalen
+        amountToPay = p.PersonId == shoppingList.PayerId
+            ? 0m
+            : Math.Round(amounts[p.PersonId], 2)
     }).ToList();
+
+    var repayments = new List<object>();
+
+    if (shoppingList.PayerId != null)
+    {
+        foreach (var person in persons)
+        {
+            if (person.PersonId == shoppingList.PayerId)
+                continue;
+
+            repayments.Add(new
+            {
+                fromPersonId = person.PersonId,
+                fromName = person.Person.Name,
+                toPersonId = shoppingList.PayerId,
+                toName = shoppingList.Payer?.Name ?? "Onbekend",
+                amount = Math.Round(amounts[person.PersonId], 2)
+            });
+        }
+    }
 
     return Results.Ok(new
     {
         shoppingListId = shoppingList.ShoppingListId,
         title = shoppingList.Title,
         payerId = shoppingList.PayerId,
+        payerName = shoppingList.Payer?.Name,
         totalAmount = Math.Round(products.Sum(p => p.Product.Price * p.Quantity), 2),
-        persons = result
+        persons = personsResult,
+        repayments = repayments
     });
 });
 
-// =======================
+app.MapPut("/shoppinglists/{shoppingListId}/payer/{personId}", async (int shoppingListId, int personId, PaypalsDbContext db) =>
+{
+    var shoppingList = await db.ShoppingLists.FindAsync(shoppingListId);
+
+    if (shoppingList == null)
+        return Results.NotFound("Boodschappenlijst niet gevonden.");
+
+    var personInList = await db.ShoppingListPeople
+        .AnyAsync(slp => slp.ShoppingListId == shoppingListId && slp.PersonId == personId);
+
+    if (!personInList)
+        return Results.BadRequest("Deze persoon zit niet in deze boodschappenlijst.");
+
+    shoppingList.PayerId = personId;
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        shoppingList.ShoppingListId,
+        shoppingList.PayerId
+    });
+});
 
 app.Run();
