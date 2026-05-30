@@ -1,130 +1,94 @@
--- MySQL Workbench Forward Engineering
+CREATE DATABASE IF NOT EXISTS paypals_db;
+USE paypals_db;
 
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
-SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+-- =========================================
+-- TABEL: person
+-- Slaat alle personen op
+-- =========================================
+CREATE TABLE person (
+    person_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
 
--- -----------------------------------------------------
--- Schema mydb
--- -----------------------------------------------------
+-- =========================================
+-- TABEL: product
+-- Slaat alle producten op die je kan toevoegen
+-- =========================================
+CREATE TABLE product (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    is_alcoholic BOOLEAN NOT NULL DEFAULT FALSE
+);
 
--- -----------------------------------------------------
--- Schema mydb
--- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8mb3 ;
--- -----------------------------------------------------
--- Schema zoostart
--- -----------------------------------------------------
+-- =========================================
+-- TABEL: shopping_list
+-- Een boodschappenlijst
+-- payer_id = persoon die het volledige bedrag eerst betaalt
+-- =========================================
+CREATE TABLE shopping_list (
+    shopping_list_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    payer_id INT NULL,
 
--- -----------------------------------------------------
--- Schema zoostart
--- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `zoostart` ;
-USE `mydb` ;
+    CONSTRAINT fk_shopping_list_payer
+        FOREIGN KEY (payer_id)
+        REFERENCES person(person_id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+);
 
--- -----------------------------------------------------
--- Table `mydb`.`diertussen`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`diertussen` (
-  `idDierTussen` INT NOT NULL AUTO_INCREMENT,
-  `fkWoonst` INT NOT NULL,
-  `fkdier` INT NOT NULL,
-  PRIMARY KEY (`idDierTussen`),
-  INDEX `fkdier` (`fkdier` ASC) VISIBLE,
-  INDEX `fkWoonst` (`fkWoonst` ASC) VISIBLE,
-  CONSTRAINT `diertussen_ibfk_1`
-    FOREIGN KEY (`fkdier`)
-    REFERENCES `zoostart`.`dieren` (`idDieren`),
-  CONSTRAINT `diertussen_ibfk_2`
-    FOREIGN KEY (`fkWoonst`)
-    REFERENCES `zoostart`.`dierwoonst` (`idDierWoonst`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
+-- =========================================
+-- TABEL: shopping_list_person
+-- Koppelt personen aan een lijst
+-- pays_for_alcohol = betaalt die persoon mee voor alcohol?
+-- =========================================
+CREATE TABLE shopping_list_person (
+    shopping_list_person_id INT AUTO_INCREMENT PRIMARY KEY,
+    shopping_list_id INT NOT NULL,
+    person_id INT NOT NULL,
+    pays_for_alcohol BOOLEAN NOT NULL DEFAULT TRUE,
 
+    CONSTRAINT fk_slp_list
+        FOREIGN KEY (shopping_list_id)
+        REFERENCES shopping_list(shopping_list_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
--- -----------------------------------------------------
--- Table `mydb`.`dierwoonst`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`dierwoonst` (
-  `idDierWoonst` INT NOT NULL AUTO_INCREMENT,
-  `Locatie` VARCHAR(255) NOT NULL,
-  `Binnen` TINYINT(1) NOT NULL,
-  PRIMARY KEY (`idDierWoonst`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
+    CONSTRAINT fk_slp_person
+        FOREIGN KEY (person_id)
+        REFERENCES person(person_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
+    CONSTRAINT uq_slp UNIQUE (shopping_list_id, person_id)
+);
 
--- -----------------------------------------------------
--- Table `mydb`.`gebruiker`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`gebruiker` (
-  `idGebruiker` INT NOT NULL AUTO_INCREMENT,
-  `VoornaamGebruiker` VARCHAR(45) NOT NULL,
-  `AchternaamGebruiker` VARCHAR(45) NULL DEFAULT NULL,
-  PRIMARY KEY (`idGebruiker`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
+-- =========================================
+-- TABEL: shopping_list_product
+-- Koppelt producten aan een lijst
+-- quantity = aantal van dat product
+-- =========================================
+CREATE TABLE shopping_list_product (
+    shopping_list_product_id INT AUTO_INCREMENT PRIMARY KEY,
+    shopping_list_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
 
+    CONSTRAINT fk_slpr_list
+        FOREIGN KEY (shopping_list_id)
+        REFERENCES shopping_list(shopping_list_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
--- -----------------------------------------------------
--- Table `mydb`.`leerkracht`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`leerkracht` (
-  `idLeerkracht` INT NOT NULL AUTO_INCREMENT,
-  `NaamLeerkracht` VARCHAR(45) NOT NULL,
-  `FamilienaamLeerkracht` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`idLeerkracht`))
-ENGINE = InnoDB
-AUTO_INCREMENT = 5
-DEFAULT CHARACTER SET = utf8mb3;
+    CONSTRAINT fk_slpr_product
+        FOREIGN KEY (product_id)
+        REFERENCES product(product_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
+    CONSTRAINT chk_quantity CHECK (quantity > 0),
 
--- -----------------------------------------------------
--- Table `mydb`.`leerling`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`leerling` (
-  `idLeerling` INT NOT NULL AUTO_INCREMENT,
-  `Naamleerling` VARCHAR(45) NOT NULL,
-  `FamilienaamLeerling` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`idLeerling`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`leerkracht_has_leerling`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`leerkracht_has_leerling` (
-  `FKLeerkracht` INT NOT NULL,
-  `FKLeerling` INT NOT NULL,
-  `DagvanDeWeek` VARCHAR(45) NOT NULL,
-  `Lokaal` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`FKLeerkracht`, `FKLeerling`),
-  INDEX `fk_Leerkracht_has_Leerling_Leerling1_idx` (`FKLeerling` ASC) VISIBLE,
-  INDEX `fk_Leerkracht_has_Leerling_Leerkracht_idx` (`FKLeerkracht` ASC) VISIBLE,
-  CONSTRAINT `fk_Leerkracht_has_Leerling_Leerkracht`
-    FOREIGN KEY (`FKLeerkracht`)
-    REFERENCES `mydb`.`leerkracht` (`idLeerkracht`),
-  CONSTRAINT `fk_Leerkracht_has_Leerling_Leerling1`
-    FOREIGN KEY (`FKLeerling`)
-    REFERENCES `mydb`.`leerling` (`idLeerling`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`lijst`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`lijst` (
-  `idLijst` INT NOT NULL AUTO_INCREMENT,
-  `NaamLijst` VARCHAR(45) NOT NULL,
-  `DatumLijst` DATE NULL DEFAULT NULL,
-  PRIMARY KEY (`idLijst`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb3;
-
-USE `zoostart` ;
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+    CONSTRAINT uq_slpr UNIQUE (shopping_list_id, product_id)
+);
