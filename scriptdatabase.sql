@@ -3,7 +3,6 @@ USE paypals_db;
 
 -- =========================================
 -- TABEL: person
--- Slaat alle personen op
 -- =========================================
 CREATE TABLE person (
     person_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -12,7 +11,6 @@ CREATE TABLE person (
 
 -- =========================================
 -- TABEL: product
--- Slaat alle producten op die je kan toevoegen
 -- =========================================
 CREATE TABLE product (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -23,8 +21,6 @@ CREATE TABLE product (
 
 -- =========================================
 -- TABEL: shopping_list
--- Een boodschappenlijst
--- payer_id = persoon die het volledige bedrag eerst betaalt
 -- =========================================
 CREATE TABLE shopping_list (
     shopping_list_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,8 +37,6 @@ CREATE TABLE shopping_list (
 
 -- =========================================
 -- TABEL: shopping_list_person
--- Koppelt personen aan een lijst
--- pays_for_alcohol = betaalt die persoon mee voor alcohol?
 -- =========================================
 CREATE TABLE shopping_list_person (
     shopping_list_person_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -67,8 +61,6 @@ CREATE TABLE shopping_list_person (
 
 -- =========================================
 -- TABEL: shopping_list_product
--- Koppelt producten aan een lijst
--- quantity = aantal van dat product
 -- =========================================
 CREATE TABLE shopping_list_product (
     shopping_list_product_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -92,3 +84,44 @@ CREATE TABLE shopping_list_product (
 
     CONSTRAINT uq_slpr UNIQUE (shopping_list_id, product_id)
 );
+
+-- =========================================
+-- TESTDATA PERSONEN
+-- =========================================
+INSERT INTO person (name)
+VALUES
+('Zina'),
+('Emma');
+
+-- =========================================
+-- TESTDATA PRODUCTEN
+-- =========================================
+INSERT INTO product (name, price, is_alcoholic)
+VALUES
+('Cola', 3.50, FALSE),
+('Bier 6-pack', 8.99, TRUE);
+
+-- =========================================
+-- TESTDATA SHOPPING LIST
+-- =========================================
+INSERT INTO shopping_list (title, payer_id)
+VALUES
+('BBQ Avond', 1);
+
+-- =========================================
+-- PERSONEN KOPPELEN AAN LIJST
+-- =========================================
+INSERT INTO shopping_list_person
+(shopping_list_id, person_id, pays_for_alcohol)
+VALUES
+(1, 1, TRUE),
+(1, 2, FALSE);
+
+-- =========================================
+-- PRODUCTEN KOPPELEN AAN LIJST
+-- =========================================
+INSERT INTO shopping_list_product
+(shopping_list_id, product_id, quantity)
+VALUES
+(1, 1, 2),
+(1, 2, 1);
